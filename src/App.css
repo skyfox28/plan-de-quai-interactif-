@@ -56,6 +56,73 @@ body {
   flex-shrink: 0;
 }
 
+/* ── Sync button ────────────────────────────────── */
+.sync-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sync-connect-btn {
+  background: #1e293b;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  &:hover { background: #1e3a5f; border-color: #3b82f6; }
+  &:disabled { opacity: 0.5; cursor: default; }
+}
+
+.sync-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0d2236;
+  border: 1px solid #1e3a5f;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.sync-badge--on {
+  border-color: #22c55e;
+  background: #052e16;
+}
+
+.sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  animation: syncpulse 2s ease-in-out infinite;
+}
+
+@keyframes syncpulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.sync-label { color: #86efac; font-weight: 600; }
+.sync-time  { color: #475569; font-size: 11px; }
+.sync-disc  {
+  background: none; border: none; color: #475569;
+  cursor: pointer; font-size: 13px; line-height: 1; padding: 0 0 0 4px;
+  &:hover { color: #ef4444; }
+}
+.sync-error { color: #f59e0b; font-size: 14px; cursor: help; }
+
+.stats-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
 .stats-brand {
   font-size: 15px;
   font-weight: 700;

@@ -1,5 +1,6 @@
 import { useWarehouseStore } from '../store/warehouseStore'
 import { STATUS, STATUS_META, QUAI_STATUS_META, QUAI_STATUS } from '../data/warehouse'
+import SyncButton from './SyncButton'
 
 export default function StatsBar() {
   const getStats = useWarehouseStore(s => s.getStats)
@@ -12,6 +13,7 @@ export default function StatsBar() {
   return (
     <div className="stats-bar">
       <div className="stats-brand">Plan de Quai 3D</div>
+      <SyncButton />
       <div className="stats-divider" />
       <div className="stats-items">
         <StatItem label="Palettes" value={`${stats.usedPalettes}/${stats.totalCapacity}`} sub="utilisées" />

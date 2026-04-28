@@ -2,14 +2,47 @@ import { useState } from 'react'
 import { Billboard, Text } from '@react-three/drei'
 import { STATUS_META, LAYOUT } from '../data/warehouse'
 
+const PALETTE_H   = 0.20
+const PALETTE_GAP = 0.05
+
 export default function AisleBlock({ aisle, posX, isSelected, onClick }) {
   const [hovered, setHovered] = useState(false)
 
-  const meta  = STATUS_META[aisle.status]
-  const depth = aisle.zone === 'A' ? LAYOUT.DEPTH_A : LAYOUT.DEPTH_B
-  const w     = LAYOUT.AISLE_W - 0.15
-  const h     = LAYOUT.BLOCK_H
-  const glow  = isSelected ? 0.7 : hovered ? 0.38 : 0.1
+  const meta           = STATUS_META[aisle.status]
+  const depth          = aisle.zone === 'A' ? LAYOUT.DEPTH_A : LAYOUT.DEPTH_B
+  const groundPos      = aisle.groundPositions || (aisle.zone === 'A' ? 9 : 7)
+  const w              = LAYOUT.AISLE_W - 0.15
+  const h              = LAYOUT.BLOCK_H
+  const glow           = isSelected ? 0.7 : hovered ? 0.38 : 0.1
+  const usedPalettes   = aisle.usedPalettes || 0
+  const slotSpacing    = depth / groundPos
+  const slotDepth      = slotSpacing - 0.09
+  const slotW          = w - 0.18
+
+  // Build palette slots — fill ground level (lvl 0) left→right then gerber level (lvl 1)
+  const paletteSlots = []
+  for (let i = 0; i < groundPos; i++) {
+    const zLocal = -depth / 2 + slotSpacing / 2 + i * slotSpacing
+    for (let lvl = 0; lvl < 2; lvl++) {
+      const fillIndex = lvl === 0 ? i : groundPos + i
+      const filled    = fillIndex < usedPalettes
+      const y         = h + lvl * (PALETTE_H + PALETTE_GAP) + PALETTE_H / 2
+      paletteSlots.push(
+        <mesh key={`p-${i}-${lvl}`} position={[0, y, zLocal]}>
+          <boxGeometry args={[slotW, PALETTE_H, slotDepth]} />
+          <meshStandardMaterial
+            color={filled ? meta.color : '#0a1520'}
+            emissive={filled ? meta.color : '#000'}
+            emissiveIntensity={filled ? (isSelected ? 0.5 : 0.18) : 0}
+            roughness={0.45}
+            metalness={0.2}
+            transparent={!filled}
+            opacity={filled ? 1 : 0.28}
+          />
+        </mesh>
+      )
+    }
+  }
 
   return (
     <group position={[posX, 0, depth / 2]}>
@@ -29,6 +62,9 @@ export default function AisleBlock({ aisle, posX, isSelected, onClick }) {
           metalness={0.45}
         />
       </mesh>
+
+      {/* Palette visualization */}
+      {paletteSlots}
 
       {/* Front face highlight (dock side) */}
       <mesh position={[0, 1.0, -depth / 2 + 0.05]}>
@@ -51,7 +87,7 @@ export default function AisleBlock({ aisle, posX, isSelected, onClick }) {
       )}
 
       {/* Billboard label */}
-      <Billboard position={[0, 3.2, 0]}>
+      <Billboard position={[0, 3.5, 0]}>
         <Text fontSize={0.6} color="#f8fafc" anchorX="center" outlineWidth={0.05} outlineColor="#000014">
           {aisle.name}
         </Text>
@@ -70,11 +106,11 @@ export default function AisleBlock({ aisle, posX, isSelected, onClick }) {
         )}
         <Text
           fontSize={0.32}
-          color={aisle.usedPalettes > 0 ? '#7dd3fc' : '#475569'}
+          color={usedPalettes > 0 ? '#7dd3fc' : '#475569'}
           anchorX="center"
           position={[0, aisle.client ? -1.22 : -0.72, 0]}
         >
-          {`${aisle.usedPalettes}/${aisle.totalPalettes} pal.`}
+          {`${usedPalettes}/${aisle.totalPalettes} pal.`}
         </Text>
       </Billboard>
     </group>

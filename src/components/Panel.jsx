@@ -2,6 +2,49 @@ import { useState, useEffect } from 'react'
 import { useWarehouseStore } from '../store/warehouseStore'
 import { STATUS, STATUS_META, QUAI_STATUS, QUAI_STATUS_META, QUAI_DEFS } from '../data/warehouse'
 
+/* ── Palette slot grid ──────────────────────────── */
+function PaletteGridViz({ usedPalettes, totalPalettes, groundPositions, color }) {
+  const levels = Math.round(totalPalettes / groundPositions) || 2
+
+  // Build rows: top row = gerber (lvl 1), bottom row = sol (lvl 0)
+  const rows = []
+  for (let lvl = levels - 1; lvl >= 0; lvl--) {
+    const cells = []
+    for (let i = 0; i < groundPositions; i++) {
+      const fillIndex = lvl === 0 ? i : groundPositions + i
+      const filled = fillIndex < usedPalettes
+      cells.push(
+        <div
+          key={i}
+          className={`pgrid-cell${filled ? ' pgrid-cell--filled' : ''}`}
+          style={filled ? { background: color, boxShadow: `0 0 5px ${color}88` } : {}}
+        />
+      )
+    }
+    rows.push(
+      <div key={lvl} className="pgrid-row">
+        <span className="pgrid-lvl">{lvl === 0 ? 'Sol' : 'Gerber'}</span>
+        <div className="pgrid-cells" style={{ '--cols': groundPositions }}>{cells}</div>
+      </div>
+    )
+  }
+
+  const pct = totalPalettes ? Math.round((usedPalettes / totalPalettes) * 100) : 0
+
+  return (
+    <div className="pgrid-wrap">
+      <div className="pgrid-header">
+        <span className="pgrid-count" style={{ color }}>{usedPalettes}<span className="pgrid-total">/{totalPalettes}</span></span>
+        <span className="pgrid-pct">{pct}%</span>
+      </div>
+      <div className="pgrid-rows">{rows}</div>
+      <div className="pgrid-bar-wrap">
+        <div className="pgrid-bar-fill" style={{ width: `${Math.min(100, pct)}%`, background: color }} />
+      </div>
+    </div>
+  )
+}
+
 /* ── Aisle / Épis panel ─────────────────────────── */
 function SlotPanel({ item, selected, updateItem, resetItem, deselect }) {
   const tfDeliveries = useWarehouseStore(s => s.tfDeliveries)
@@ -60,13 +103,12 @@ function SlotPanel({ item, selected, updateItem, resetItem, deselect }) {
       </div>
 
       <div className="panel-capacity">
-        <div className="capacity-bar-wrap">
-          <div className="capacity-bar-fill" style={{
-            width: `${Math.min(100, (form.usedPalettes / item.totalPalettes) * 100)}%`,
-            background: meta.color,
-          }} />
-        </div>
-        <span className="capacity-label">{form.usedPalettes} / {item.totalPalettes} palettes</span>
+        <PaletteGridViz
+          usedPalettes={Number(form.usedPalettes)}
+          totalPalettes={item.totalPalettes}
+          groundPositions={item.groundPositions || (isEpis ? 2 : 9)}
+          color={meta.color}
+        />
       </div>
 
       <form className="panel-form" onSubmit={handleSave}>

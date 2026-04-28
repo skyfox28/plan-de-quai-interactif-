@@ -3,21 +3,23 @@ import { STATUS, STATUS_META, QUAI_STATUS_META, QUAI_STATUS } from '../data/ware
 import SyncButton from './SyncButton'
 
 export default function StatsBar() {
-  const getStats = useWarehouseStore(s => s.getStats)
-  const quais    = useWarehouseStore(s => s.quais)
-  const stats    = getStats()
+  const getStats      = useWarehouseStore(s => s.getStats)
+  const quais         = useWarehouseStore(s => s.quais)
+  useWarehouseStore(s => s.aisles)         // trigger re-render on aisle changes
+  useWarehouseStore(s => s.episPositions)  // trigger re-render on épis changes
+  const stats = getStats()
 
-  const loading  = quais.filter(q => q.status === QUAI_STATUS.LOADING).length
-  const waiting  = quais.filter(q => q.status === QUAI_STATUS.WAITING).length
+  const loading = quais.filter(q => q.status === QUAI_STATUS.LOADING).length
+  const waiting = quais.filter(q => q.status === QUAI_STATUS.WAITING).length
 
   return (
     <div className="stats-bar">
-      <div className="stats-brand">Plan de Quai 3D</div>
+      <div className="stats-brand">Plan de Quai <span className="stats-brand-accent">3D</span></div>
       <SyncButton />
       <div className="stats-divider" />
       <div className="stats-items">
-        <StatItem label="Palettes" value={`${stats.usedPalettes}/${stats.totalCapacity}`} sub="utilisées" />
-        <StatItem label="Occupation" value={`${stats.occupancyPct}%`} sub="entrepôt" accent={pctColor(stats.occupancyPct)} />
+        <StatItem label="Palettes" value={`${stats.usedPalettes}`} sub={`/ ${stats.totalCapacity}`} />
+        <StatItem label="Occupation" value={`${stats.occupancyPct}%`} sub="entrepôt" accent={pctColor(stats.occupancyPct)} glow />
         <StatItem label="Allées libres" value={stats.byStatus[STATUS.FREE]} sub="/ 21" />
         <StatItem label="Quais actifs" value={stats.quaiActive} sub="/ 6" accent={stats.quaiActive > 0 ? QUAI_STATUS_META[QUAI_STATUS.LOADING].color : undefined} />
         <StatItem label="En chargement" value={loading} sub="quais" accent={loading > 0 ? QUAI_STATUS_META[QUAI_STATUS.LOADING].color : undefined} />
@@ -29,11 +31,16 @@ export default function StatsBar() {
   )
 }
 
-function StatItem({ label, value, sub, accent }) {
+function StatItem({ label, value, sub, accent, glow }) {
   return (
     <div className="stat-item">
       <span className="stat-label">{label}</span>
-      <span className="stat-value" style={accent ? { color: accent } : undefined}>{value}</span>
+      <span
+        className={`stat-value${glow && accent ? ' stat-value--glow' : ''}`}
+        style={accent ? { color: accent, '--glow-color': accent } : undefined}
+      >
+        {value}
+      </span>
       <span className="stat-sub">{sub}</span>
     </div>
   )

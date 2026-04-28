@@ -11,19 +11,19 @@ function WarehouseFloor({ totalW }) {
   return (
     <>
       <Grid
-        args={[totalW + 10, 28]}
-        position={[0, -0.02, 7]}
+        args={[totalW + 12, 26]}
+        position={[0, -0.02, 3]}
         cellSize={1}
         cellThickness={0.4}
         cellColor="#1e3a5f"
         sectionSize={5}
         sectionThickness={0.8}
         sectionColor="#2d4a6a"
-        fadeDistance={120}
+        fadeDistance={130}
         infiniteGrid={false}
       />
-      <mesh position={[0, -0.03, 7]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[totalW + 10, 28]} />
+      <mesh position={[0, -0.03, 3]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[totalW + 12, 26]} />
         <meshStandardMaterial color="#080f1a" />
       </mesh>
     </>
@@ -37,7 +37,7 @@ export default function Scene() {
 
   return (
     <Canvas
-      camera={{ position: [0, 42, -22], fov: 48 }}
+      camera={{ position: [0, 55, -28], fov: 52 }}
       gl={{ antialias: true, alpha: false }}
       style={{ background: '#080f1a' }}
     >
@@ -47,11 +47,11 @@ export default function Scene() {
 
       <OrbitControls
         makeDefault
-        target={[0, 0, 7]}
+        target={[0, 0, 4]}
         maxPolarAngle={Math.PI / 2.1}
         minPolarAngle={Math.PI / 8}
         minDistance={10}
-        maxDistance={120}
+        maxDistance={140}
         enablePan
       />
 

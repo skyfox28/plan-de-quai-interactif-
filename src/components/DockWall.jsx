@@ -2,94 +2,114 @@ import { useState } from 'react'
 import { Billboard, Text } from '@react-three/drei'
 import { QUAI_STATUS_META, LAYOUT } from '../data/warehouse'
 
-const WALL_H    = 4.5
-const WALL_Z    = -(LAYOUT.DOCK_THICK / 2)   // center of wall in Z
-const BAY_H     = 3.8
-const BAY_DEPTH = 0.12
+// Quais are rendered as raised floor platforms OUTSIDE the warehouse (Z < 0)
+const DOCK_Z_CENTER = -3.5   // center of dock platform zone
+const DOCK_DEPTH    = 4      // Z depth of dock zone
+const PLATFORM_H    = 0.5    // height of raised platform
 
 function QuaiBay({ quai, posX, width, isSelected, onClick }) {
   const [hovered, setHovered] = useState(false)
   const meta = QUAI_STATUS_META[quai.status]
-  const glow = isSelected ? 0.65 : hovered ? 0.35 : 0.12
+  const glow = isSelected ? 0.6 : hovered ? 0.3 : 0.1
 
   return (
-    <group position={[posX, 0, WALL_Z - LAYOUT.DOCK_THICK / 2 - 0.05]}>
-      {/* Bay panel */}
+    <group>
+      {/* Raised dock platform (flat, visible from above) */}
       <mesh
-        position={[0, BAY_H / 2, 0]}
+        position={[posX, PLATFORM_H / 2, DOCK_Z_CENTER]}
         onPointerOver={e => { e.stopPropagation(); setHovered(true) }}
         onPointerOut={() => setHovered(false)}
         onClick={e => { e.stopPropagation(); onClick() }}
       >
-        <boxGeometry args={[width - 0.3, BAY_H, BAY_DEPTH]} />
+        <boxGeometry args={[width - 0.4, PLATFORM_H, DOCK_DEPTH]} />
         <meshStandardMaterial
           color={meta.color}
           emissive={meta.color}
           emissiveIntensity={glow}
-          roughness={0.4}
+          roughness={0.5}
         />
       </mesh>
 
-      {/* Selection ring */}
+      {/* Selection outline */}
       {isSelected && (
-        <mesh position={[0, BAY_H / 2, 0]}>
-          <boxGeometry args={[width - 0.1, BAY_H + 0.15, BAY_DEPTH + 0.1]} />
+        <mesh position={[posX, PLATFORM_H / 2, DOCK_Z_CENTER]}>
+          <boxGeometry args={[width - 0.2, PLATFORM_H + 0.1, DOCK_DEPTH + 0.2]} />
           <meshBasicMaterial color="#ffffff" wireframe />
         </mesh>
       )}
 
-      {/* Quai number + truck label */}
-      <Billboard position={[0, BAY_H + 1.0, 0]}>
-        <Text fontSize={0.9} color="#f8fafc" anchorX="center" fontWeight="bold" outlineWidth={0.06} outlineColor="#000">
+      {/* Connector strip between platform and aisle entrance */}
+      <mesh position={[posX, 0.06, -0.8]}>
+        <boxGeometry args={[width - 0.4, 0.12, 1.4]} />
+        <meshStandardMaterial color={meta.color} emissive={meta.color} emissiveIntensity={0.35} />
+      </mesh>
+
+      {/* Billboard label (always faces camera) */}
+      <Billboard position={[posX, 4.5, DOCK_Z_CENTER]}>
+        <Text
+          fontSize={1.1}
+          color="#f8fafc"
+          anchorX="center"
+          fontWeight="bold"
+          outlineWidth={0.07}
+          outlineColor="#000"
+        >
           {quai.label}
         </Text>
         {quai.truck && (
-          <Text fontSize={0.46} color="#fde68a" anchorX="center" position={[0, -1.05, 0]} outlineWidth={0.03} outlineColor="#000" maxWidth={width - 0.5}>
+          <Text
+            fontSize={0.5}
+            color="#fde68a"
+            anchorX="center"
+            position={[0, -1.3, 0]}
+            outlineWidth={0.03}
+            outlineColor="#000"
+            maxWidth={width - 0.5}
+          >
             {quai.truck}
           </Text>
         )}
-        <Text fontSize={0.35} color={meta.color} anchorX="center" position={[0, quai.truck ? -1.65 : -1.05, 0]}>
+        <Text
+          fontSize={0.38}
+          color={meta.color}
+          anchorX="center"
+          position={[0, quai.truck ? -2.0 : -1.3, 0]}
+        >
           {meta.label}
         </Text>
         {quai.arrivalTime && (
-          <Text fontSize={0.3} color="#64748b" anchorX="center" position={[0, quai.truck ? -2.1 : -1.5, 0]}>
+          <Text fontSize={0.3} color="#64748b" anchorX="center" position={[0, quai.truck ? -2.5 : -1.8, 0]}>
             {`Arr. ${quai.arrivalTime}`}
           </Text>
         )}
       </Billboard>
-
-      {/* Bottom ground strip */}
-      <mesh position={[0, 0.05, 0]}>
-        <boxGeometry args={[width - 0.3, 0.1, BAY_DEPTH + 0.4]} />
-        <meshStandardMaterial color={meta.color} emissive={meta.color} emissiveIntensity={0.4} />
-      </mesh>
     </group>
   )
 }
 
 export default function DockWall({ quais, quaiPositions, selected, onSelect }) {
-  const totalW = 60.5  // matches computeLayout totalW
+  const totalW = 60.5
 
   return (
     <group>
-      {/* Main concrete wall */}
-      <mesh position={[0, WALL_H / 2, WALL_Z]}>
-        <boxGeometry args={[totalW + 4, WALL_H, LAYOUT.DOCK_THICK]} />
-        <meshStandardMaterial color="#0d1b2a" roughness={0.9} metalness={0.05} />
+      {/* Base dock apron (dark ground) */}
+      <mesh position={[0, 0.02, DOCK_Z_CENTER]}>
+        <boxGeometry args={[totalW + 4, 0.04, DOCK_DEPTH + 2]} />
+        <meshStandardMaterial color="#0a1628" />
       </mesh>
 
-      {/* Top cap */}
-      <mesh position={[0, WALL_H + 0.2, WALL_Z]}>
-        <boxGeometry args={[totalW + 4, 0.4, LAYOUT.DOCK_THICK + 0.6]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.8} />
-      </mesh>
-
-      {/* "QUAI" wall label */}
-      <Billboard position={[-(totalW / 2) - 1.5, WALL_H / 2, WALL_Z - LAYOUT.DOCK_THICK]}>
-        <Text fontSize={0.6} color="#334155" anchorX="center" rotation={[0, 0, Math.PI / 2]}>
-          QUAI
-        </Text>
+      {/* "QUAI" label on dock floor */}
+      <Billboard position={[-(totalW / 2) - 2.5, 1.5, DOCK_Z_CENTER]}>
+        <Text fontSize={0.7} color="#334155" anchorX="center">QUAI</Text>
       </Billboard>
+
+      {/* Separation pillars between bays */}
+      {Object.values(quaiPositions).map(pos => (
+        <mesh key={`sep-${pos.xMax}`} position={[pos.xMax, PLATFORM_H, DOCK_Z_CENTER]}>
+          <boxGeometry args={[0.2, PLATFORM_H * 2, DOCK_DEPTH + 0.2]} />
+          <meshStandardMaterial color="#1e293b" />
+        </mesh>
+      ))}
 
       {/* Individual quai bays */}
       {quais.map(quai => {
@@ -105,18 +125,6 @@ export default function DockWall({ quais, quaiPositions, selected, onSelect }) {
             isSelected={isSelected}
             onClick={() => onSelect('quai', quai.id)}
           />
-        )
-      })}
-
-      {/* Separation pillars between quais */}
-      {quais.slice(0, -1).map(quai => {
-        const pos = quaiPositions[quai.id]
-        if (!pos) return null
-        return (
-          <mesh key={`pillar-${quai.id}`} position={[pos.xMax, WALL_H / 2, WALL_Z - LAYOUT.DOCK_THICK / 2 - 0.05]}>
-            <boxGeometry args={[0.25, WALL_H + 0.5, 0.4]} />
-            <meshStandardMaterial color="#1e3a5f" />
-          </mesh>
         )
       })}
     </group>

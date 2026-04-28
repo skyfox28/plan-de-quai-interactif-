@@ -31,7 +31,7 @@ function SlotPanel({ item, selected, updateItem, resetItem, deselect }) {
     }
     const d = tfDeliveries.find(d => d.id === id)
     if (d) {
-      setForm(f => ({ ...f, deliveryId: id, client: d.dest, command: d.id }))
+      setForm(f => ({ ...f, deliveryId: id, client: d.dest, command: d.id, usedPalettes: d.palSilo || 0 }))
     }
   }
 

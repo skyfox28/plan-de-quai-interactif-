@@ -75,13 +75,7 @@ export default function AisleBlock({ aisle, posX, isSelected, onClick }) {
               </group>
             )
           } else {
-            // Empty slot — wireframe outline so the position is visible but unobtrusive
-            return (
-              <mesh key={`${i}-${lvl}`} position={[0, yCenter, zLocal]}>
-                <boxGeometry args={[slotW, PAL_H, slotDepth]} />
-                <meshBasicMaterial color="#1e3a5f" wireframe opacity={0.22} transparent />
-              </mesh>
-            )
+            return null
           }
         })
       })}

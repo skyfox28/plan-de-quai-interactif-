@@ -102,14 +102,12 @@ function SlotPanel({ item, selected, updateItem, resetItem, deselect }) {
         <button className="panel-close" onClick={deselect}>✕</button>
       </div>
 
-      <div className="panel-capacity">
-        <PaletteGridViz
-          usedPalettes={Number(form.usedPalettes)}
-          totalPalettes={item.totalPalettes}
-          groundPositions={item.groundPositions || (isEpis ? 2 : 9)}
-          color={meta.color}
-        />
-      </div>
+      <PaletteGridViz
+        usedPalettes={Number(form.usedPalettes)}
+        totalPalettes={item.totalPalettes}
+        groundPositions={item.groundPositions || (isEpis ? 2 : 9)}
+        color={meta.color}
+      />
 
       <form className="panel-form" onSubmit={handleSave}>
 

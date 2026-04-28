@@ -31,9 +31,9 @@ export default function AisleBlock({ aisle, posX, isSelected, onClick }) {
       >
         <boxGeometry args={[w, h, depth]} />
         <meshStandardMaterial
-          color={isSelected ? '#0d2040' : hovered ? '#0a1830' : '#080e1c'}
-          roughness={0.7}
-          metalness={0.2}
+          color={isSelected ? '#1c1c1c' : hovered ? '#141414' : '#0a0a0a'}
+          roughness={0.8}
+          metalness={0.1}
         />
       </mesh>
 

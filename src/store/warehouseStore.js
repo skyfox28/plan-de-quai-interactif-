@@ -3,7 +3,7 @@ import { createAisles, createEpisPositions, createQuais, STATUS, QUAI_STATUS, QU
 
 const EMPTY_AISLE = {
   status: STATUS.FREE, client: null, command: null,
-  notes: '', usedPalettes: 0, quaiId: null,
+  notes: '', usedPalettes: 0, quaiId: null, deliveryId: null,
 }
 
 export const useWarehouseStore = create((set, get) => ({
@@ -11,9 +11,11 @@ export const useWarehouseStore = create((set, get) => ({
   episPositions: createEpisPositions(),
   quais:         createQuais(),
   selected:      null, // { type: 'aisle'|'epis'|'quai', id }
+  tfDeliveries:  [],   // [{ id, dest, ville, transporteur, truckId, quaiId, palSilo }]
 
   select:  (type, id) => set({ selected: { type, id } }),
   deselect: ()        => set({ selected: null }),
+  setTfDeliveries: (deliveries) => set({ tfDeliveries: deliveries }),
 
   getSelected: () => {
     const { selected, aisles, episPositions, quais } = get()

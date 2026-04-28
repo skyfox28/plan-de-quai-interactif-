@@ -23,12 +23,11 @@ function toHHMM(iso) {
 }
 
 /**
- * Parse a TruckFlow session JSON and return an array of quai assignments
- * for quais 4-9 (the ones managed by Plan de Quai).
+ * Parse a TruckFlow session JSON and return quai assignments + full delivery list.
  *
  * @param {object} session  - parsed TruckFlow session JSON
  * @param {string} forDate  - ISO date string "YYYY-MM-DD" (default: today)
- * @returns {Array<{quaiId, truck, creneau, status, arrivalTime, departureTime, notes}>}
+ * @returns {{ assignments: Array, deliveries: Array }}
  */
 export function parseTruckFlowSession(session, forDate) {
   const today = forDate || new Date().toISOString().slice(0, 10)
@@ -36,34 +35,59 @@ export function parseTruckFlowSession(session, forDate) {
   const trucks    = session.trucks || []
   const tsMap     = session.timestamps || {}
 
-  const results = []
+  // Build a lookup map from delivery id → delivery object
+  const deliveryMap = {}
+  for (const d of (session.deliveries || [])) {
+    deliveryMap[d.id] = d
+  }
 
+  // Build a lookup: truckId → quaiId (Q4-Q9 only)
+  const truckToQuai = {}
   for (const [quaiStr, truckId] of Object.entries(quaiMap)) {
-    const quaiId = parseInt(quaiStr, 10)
-    if (quaiId < 4 || quaiId > 9) continue   // only Q4-Q9
+    const qn = parseInt(quaiStr, 10)
+    if (qn >= 4 && qn <= 9) truckToQuai[truckId] = qn
+  }
 
-    const truck = trucks.find(t => t.id === truckId)
-    if (!truck) continue
+  const assignments = []
+  const deliveries  = []
 
-    // Only today's trucks (or trucks delayed to today)
+  for (const truck of trucks) {
     const truckDate = truck.date || ''
     if (truckDate !== today) continue
 
-    const ts     = tsMap[truckId] || null
-    const status = deriveStatus(ts)
+    const quaiId = truckToQuai[truck.id] ?? null
+    const ts     = tsMap[truck.id] || null
 
-    results.push({
-      quaiId,
-      truck:         truck.transporteur || truck.itin || '?',
-      creneau:       truck.creneau || '',
-      status,
-      arrivalTime:   toHHMM(ts?.arr),
-      departureTime: toHHMM(ts?.dep),
-      notes:         truck.notes || '',
-    })
+    // Quai assignment (only for trucks physically on Q4-Q9)
+    if (quaiId !== null) {
+      assignments.push({
+        quaiId,
+        truck:         truck.transporteur || truck.itin || '?',
+        creneau:       truck.creneau || '',
+        status:        deriveStatus(ts),
+        arrivalTime:   toHHMM(ts?.arr),
+        departureTime: toHHMM(ts?.dep),
+        notes:         truck.notes || '',
+      })
+    }
+
+    // Enrich every delivery belonging to today's trucks
+    for (const delivId of (truck.deliveries || [])) {
+      const d = deliveryMap[delivId]
+      if (!d) continue
+      deliveries.push({
+        id:          String(d.id),
+        dest:        d.dest  || '',
+        ville:       d.ville || '',
+        transporteur: truck.transporteur || truck.itin || '',
+        truckId:     truck.id,
+        quaiId,          // null if truck is not on Q4-Q9
+        palSilo:     d.palSilo || 0,
+      })
+    }
   }
 
-  return results
+  return { assignments, deliveries }
 }
 
 /**
@@ -119,9 +143,9 @@ export class TruckFlowSync {
       const file    = await this._fileHandle.getFile()
       const text    = await file.text()
       const session = JSON.parse(text)
-      const assigns = parseTruckFlowSession(session)
+      const result  = parseTruckFlowSession(session)
       this._lastSync = new Date()
-      this._onUpdate(assigns)
+      this._onUpdate(result)
     } catch (e) {
       this._onError('Erreur de lecture : ' + e.message)
     }

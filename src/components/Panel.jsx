@@ -4,28 +4,42 @@ import { STATUS, STATUS_META, QUAI_STATUS, QUAI_STATUS_META, QUAI_DEFS } from '.
 
 /* ── Aisle / Épis panel ─────────────────────────── */
 function SlotPanel({ item, selected, updateItem, resetItem, deselect }) {
+  const tfDeliveries = useWarehouseStore(s => s.tfDeliveries)
   const [form, setForm] = useState(null)
 
   useEffect(() => {
     if (item) {
       setForm({
-        client:       item.client || '',
-        command:      item.command || '',
+        deliveryId:   item.deliveryId   || '',
+        client:       item.client       || '',
+        command:      item.command      || '',
         status:       item.status,
         usedPalettes: item.usedPalettes ?? 0,
-        notes:        item.notes || '',
+        notes:        item.notes        || '',
       })
     }
   }, [selected?.id, selected?.type])
 
   if (!item || !form) return null
-  const meta = STATUS_META[form.status]
+  const meta   = STATUS_META[form.status]
   const isEpis = selected.type === 'epis'
+
+  function handleDeliverySelect(id) {
+    if (!id) {
+      setForm(f => ({ ...f, deliveryId: '', client: '', command: '' }))
+      return
+    }
+    const d = tfDeliveries.find(d => d.id === id)
+    if (d) {
+      setForm(f => ({ ...f, deliveryId: id, client: d.dest, command: d.id }))
+    }
+  }
 
   function handleSave(e) {
     e.preventDefault()
     updateItem(selected.type, selected.id, {
-      client:       form.client.trim() || null,
+      deliveryId:   form.deliveryId   || null,
+      client:       form.client.trim()  || null,
       command:      form.command.trim() || null,
       status:       form.status,
       usedPalettes: Number(form.usedPalettes),
@@ -56,13 +70,29 @@ function SlotPanel({ item, selected, updateItem, resetItem, deselect }) {
       </div>
 
       <form className="panel-form" onSubmit={handleSave}>
-        <label><span>Client</span>
+
+        {/* Delivery picker — only shown when TruckFlow is synced */}
+        {tfDeliveries.length > 0 && (
+          <label>
+            <span>Livraison TruckFlow</span>
+            <select value={form.deliveryId} onChange={e => handleDeliverySelect(e.target.value)}>
+              <option value="">— Sélectionner une livraison —</option>
+              {tfDeliveries.map(d => (
+                <option key={d.id} value={d.id}>
+                  {d.id} · {d.dest}{d.ville ? ` (${d.ville})` : ''} — {d.transporteur}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <label><span>Client / Destination</span>
           <input type="text" value={form.client} placeholder="Nom du client…"
-            onChange={e => setForm(f => ({ ...f, client: e.target.value }))} />
+            onChange={e => setForm(f => ({ ...f, client: e.target.value, deliveryId: '' }))} />
         </label>
-        <label><span>Commande / BL</span>
-          <input type="text" value={form.command} placeholder="N° commande…"
-            onChange={e => setForm(f => ({ ...f, command: e.target.value }))} />
+        <label><span>N° livraison / BL</span>
+          <input type="text" value={form.command} placeholder="N° livraison…"
+            onChange={e => setForm(f => ({ ...f, command: e.target.value, deliveryId: '' }))} />
         </label>
         <label><span>Statut</span>
           <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))}>
@@ -71,7 +101,7 @@ function SlotPanel({ item, selected, updateItem, resetItem, deselect }) {
             ))}
           </select>
         </label>
-        <label><span>Palettes utilisées</span>
+        <label><span>Palettes placées ici</span>
           <input type="number" min={0} max={item.totalPalettes} value={form.usedPalettes}
             onChange={e => setForm(f => ({ ...f, usedPalettes: e.target.value }))} />
         </label>

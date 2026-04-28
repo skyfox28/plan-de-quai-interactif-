@@ -9,15 +9,17 @@ export default function SyncButton() {
   const [loading, setLoading]     = useState(false)
   const syncRef = useRef(null)
 
-  const assignQuai = useWarehouseStore(s => s.assignQuai)
-  const clearQuai  = useWarehouseStore(s => s.clearQuai)
+  const assignQuai      = useWarehouseStore(s => s.assignQuai)
+  const clearQuai       = useWarehouseStore(s => s.clearQuai)
+  const setTfDeliveries = useWarehouseStore(s => s.setTfDeliveries)
 
   useEffect(() => {
     syncRef.current = new TruckFlowSync(
-      // onUpdate: apply assignments from TruckFlow
-      (assignments) => {
+      // onUpdate: apply assignments + store deliveries from TruckFlow
+      ({ assignments, deliveries }) => {
         setError(null)
         setLastSync(new Date())
+        setTfDeliveries(deliveries)
 
         // Track which quais TruckFlow knows about
         const tfQuaiIds = new Set(assignments.map(a => a.quaiId))

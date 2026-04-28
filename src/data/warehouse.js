@@ -7,41 +7,66 @@ export const STATUS = {
 }
 
 export const STATUS_META = {
-  [STATUS.FREE]:        { label: 'Libre',       color: '#22c55e', emissive: '#166534' },
-  [STATUS.ASSIGNED]:    { label: 'Affecté',     color: '#3b82f6', emissive: '#1e3a8a' },
-  [STATUS.RESERVED]:    { label: 'Réservé',     color: '#f59e0b', emissive: '#78350f' },
-  [STATUS.IN_PROGRESS]: { label: 'En cours',    color: '#a855f7', emissive: '#4a1d96' },
-  [STATUS.FULL]:        { label: 'Complet',     color: '#ef4444', emissive: '#7f1d1d' },
+  [STATUS.FREE]:        { label: 'Libre',          color: '#22c55e' },
+  [STATUS.ASSIGNED]:    { label: 'Affecté',        color: '#3b82f6' },
+  [STATUS.RESERVED]:    { label: 'Réservé',        color: '#f59e0b' },
+  [STATUS.IN_PROGRESS]: { label: 'En cours',       color: '#a855f7' },
+  [STATUS.FULL]:        { label: 'Complet',        color: '#ef4444' },
 }
 
-// Layout constants (scene units ≈ metres)
+export const QUAI_STATUS = {
+  EMPTY:    'empty',
+  WAITING:  'waiting',
+  LOADING:  'loading',
+  DONE:     'done',
+  DEPARTED: 'departed',
+}
+
+export const QUAI_STATUS_META = {
+  [QUAI_STATUS.EMPTY]:    { label: 'Libre',          color: '#374151' },
+  [QUAI_STATUS.WAITING]:  { label: 'En attente',     color: '#f59e0b' },
+  [QUAI_STATUS.LOADING]:  { label: 'En chargement',  color: '#3b82f6' },
+  [QUAI_STATUS.DONE]:     { label: 'Terminé',        color: '#22c55e' },
+  [QUAI_STATUS.DEPARTED]: { label: 'Parti',          color: '#6b7280' },
+}
+
+// Quai → allées + épis. Épis E1-E7 = Q7 side, E8-E14 = Q8 side.
+export const QUAI_DEFS = [
+  { id: 4, label: 'Q4', aisleIds: [1, 2, 3],           episIds: [] },
+  { id: 5, label: 'Q5', aisleIds: [4, 5, 6, 7, 8],     episIds: [] },
+  { id: 6, label: 'Q6', aisleIds: [9, 10, 11, 12, 13], episIds: [] },
+  { id: 7, label: 'Q7', aisleIds: [14, 15],             episIds: ['E1','E2','E3','E4','E5','E6','E7'] },
+  { id: 8, label: 'Q8', aisleIds: [16],                 episIds: ['E8','E9','E10','E11','E12','E13','E14'] },
+  { id: 9, label: 'Q9', aisleIds: [17, 18, 19, 20, 21], episIds: [] },
+]
+
+// Layout constants (1 unit ≈ 1 m)
 export const LAYOUT = {
-  AISLE_DEPTH: 3,     // Z depth of one aisle block
-  AISLE_GAP: 0.8,     // gap between aisles
-  EPIS_DEPTH: 8,      // Z depth of the épis zone
-  EPIS_GAP: 1.5,      // extra gap before/after épis zone
-  GROUP_A_WIDTH: 14,  // X length for aisles 1-15
-  GROUP_B_WIDTH: 11,  // X length for aisles 16-21
-  EPIS_WIDTH: 14,     // X length of épis zone
-  BLOCK_HEIGHT: 0.5,  // Y height of aisle blocks
+  AISLE_W:     2.5,   // X width per aisle slot
+  EPIS_ZONE_W: 8,     // X width of épis zone (between A15 and A16)
+  DEPTH_A:     13,    // Z depth for aisles A1-A15  (9 positions)
+  DEPTH_B:     10,    // Z depth for aisles A16-A21 (7 positions)
+  BLOCK_H:     0.45,  // Y height of floor blocks
+  DOCK_THICK:  1.2,   // Z thickness of dock wall structure
 }
 
 export function createAisles() {
   const aisles = []
   for (let i = 1; i <= 21; i++) {
-    const isGroupA = i <= 15
+    const isA = i <= 15
     aisles.push({
       id: i,
       name: `A${i}`,
-      zone: isGroupA ? 'A' : 'B',
-      groundPositions: isGroupA ? 9 : 7,
+      zone: isA ? 'A' : 'B',
+      groundPositions: isA ? 9 : 7,
       levels: 2,
-      totalPalettes: isGroupA ? 18 : 14,
+      totalPalettes: isA ? 18 : 14,
       usedPalettes: 0,
       status: STATUS.FREE,
       client: null,
       command: null,
       notes: '',
+      quaiId: null,
     })
   }
   return aisles
@@ -57,34 +82,68 @@ export function createEpisPositions() {
     client: null,
     command: null,
     notes: '',
+    quaiId: null,
   }))
 }
 
-// Compute the Z-center position (scene units) for each element, centered on 0
+export function createQuais() {
+  return QUAI_DEFS.map(def => ({
+    ...def,
+    truck: '',
+    status: QUAI_STATUS.EMPTY,
+    arrivalTime: '',
+    departureTime: '',
+    notes: '',
+  }))
+}
+
+/**
+ * Compute X center of each aisle, épis zone, and quai bays.
+ * Layout (top view):
+ *   X axis → aisles A1…A15, [ÉPIS], A16…A21
+ *   Z axis → depth into warehouse (0 = dock wall, positive = interior)
+ */
 export function computeLayout() {
-  const { AISLE_DEPTH, AISLE_GAP, EPIS_DEPTH, EPIS_GAP } = LAYOUT
-  const unit = AISLE_DEPTH + AISLE_GAP
+  const { AISLE_W, EPIS_ZONE_W, DEPTH_A, DEPTH_B } = LAYOUT
+  const totalW = 21 * AISLE_W + EPIS_ZONE_W   // 60.5
+  const leftEdge = -totalW / 2                  // -30.25
 
-  // Raw Z positions (from z=0)
-  const rawAisleZ = []
+  const aisleX = []
   for (let i = 0; i < 15; i++) {
-    rawAisleZ.push(i * unit + AISLE_DEPTH / 2)
+    aisleX[i] = leftEdge + i * AISLE_W + AISLE_W / 2
   }
-
-  const episStart = 15 * unit + EPIS_GAP
-  const episCenterRaw = episStart + EPIS_DEPTH / 2
-
-  const afterEpis = episStart + EPIS_DEPTH + EPIS_GAP
+  const episLeftEdge = leftEdge + 15 * AISLE_W
+  const episCenterX  = episLeftEdge + EPIS_ZONE_W / 2
+  const episRightEdge = episLeftEdge + EPIS_ZONE_W
   for (let i = 0; i < 6; i++) {
-    rawAisleZ.push(afterEpis + i * unit + AISLE_DEPTH / 2)
+    aisleX[15 + i] = episLeftEdge + EPIS_ZONE_W + i * AISLE_W + AISLE_W / 2
   }
 
-  const totalDepth = afterEpis + 6 * unit - AISLE_GAP
-  const offset = totalDepth / 2
+  // Quai X coverage
+  const quaiPositions = {}
+  QUAI_DEFS.forEach(def => {
+    const leftAisle  = Math.min(...def.aisleIds)
+    const rightAisle = Math.max(...def.aisleIds)
+    let xMin = aisleX[leftAisle  - 1] - AISLE_W / 2
+    let xMax = aisleX[rightAisle - 1] + AISLE_W / 2
+    // Q7 extends into left half of épis zone
+    if (def.id === 7) xMax = episCenterX
+    // Q8 extends into right half of épis zone
+    if (def.id === 8) xMin = episCenterX
+    quaiPositions[def.id] = {
+      centerX: (xMin + xMax) / 2,
+      width:    xMax - xMin,
+      xMin, xMax,
+    }
+  })
 
   return {
-    aisleZ: rawAisleZ.map(z => z - offset),
-    episCenterZ: episCenterRaw - offset,
-    totalDepth,
+    aisleX,
+    episCenterX,
+    episLeftEdge,
+    episRightEdge,
+    totalW,
+    leftEdge,
+    quaiPositions,
   }
 }

@@ -1,18 +1,18 @@
-import { useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Grid, Environment, Billboard, Text } from '@react-three/drei'
+import { OrbitControls, Grid } from '@react-three/drei'
 import { useWarehouseStore } from '../store/warehouseStore'
 import AisleBlock from './AisleBlock'
 import EpisZone from './EpisZone'
+import DockWall from './DockWall'
 import { computeLayout, LAYOUT } from '../data/warehouse'
 
-function WarehouseFloor({ totalDepth }) {
-  const w = LAYOUT.GROUP_A_WIDTH + 8
+function WarehouseFloor({ totalW }) {
   return (
     <>
       <Grid
-        args={[w + 4, totalDepth + 6]}
-        position={[0, -0.02, 0]}
+        args={[totalW + 10, 28]}
+        position={[0, -0.02, 7]}
         cellSize={1}
         cellThickness={0.4}
         cellColor="#1e3a5f"
@@ -22,75 +22,69 @@ function WarehouseFloor({ totalDepth }) {
         fadeDistance={120}
         infiniteGrid={false}
       />
-      {/* Floor plane */}
-      <mesh position={[0, -0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[w + 4, totalDepth + 6]} />
-        <meshStandardMaterial color="#0f172a" />
+      <mesh position={[0, -0.03, 7]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[totalW + 10, 28]} />
+        <meshStandardMaterial color="#080f1a" />
       </mesh>
     </>
   )
 }
 
-function QuaiLabel({ aisleZ }) {
-  if (aisleZ === undefined) return null
-  return (
-    <Billboard position={[0, 1, aisleZ - 3.5]}>
-      <Text fontSize={1} color="#475569" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="#000">
-        ← QUAI →
-      </Text>
-    </Billboard>
-  )
-}
-
 export default function Scene() {
-  const { aisles, episPositions, selected, select } = useWarehouseStore()
-  const { aisleZ, episCenterZ, totalDepth } = useMemo(computeLayout, [])
+  const { aisles, episPositions, quais, selected, select } = useWarehouseStore()
+  const layout = useMemo(computeLayout, [])
+  const { aisleX, totalW, quaiPositions } = layout
 
   return (
     <Canvas
-      camera={{ position: [0, 52, 30], fov: 45 }}
+      camera={{ position: [0, 42, -22], fov: 48 }}
       gl={{ antialias: true, alpha: false }}
       style={{ background: '#080f1a' }}
     >
       <ambientLight intensity={0.5} />
-      <directionalLight position={[15, 30, 10]} intensity={0.9} castShadow={false} />
-      <directionalLight position={[-15, 20, -10]} intensity={0.4} />
+      <directionalLight position={[20, 35, 10]} intensity={0.9} />
+      <directionalLight position={[-15, 20, -5]} intensity={0.4} />
 
       <OrbitControls
         makeDefault
-        maxPolarAngle={Math.PI / 2.2}
+        target={[0, 0, 7]}
+        maxPolarAngle={Math.PI / 2.1}
         minPolarAngle={Math.PI / 8}
-        minDistance={12}
-        maxDistance={110}
-        target={[0, 0, 0]}
+        minDistance={10}
+        maxDistance={120}
         enablePan
       />
 
-      <WarehouseFloor totalDepth={totalDepth} />
-      <QuaiLabel aisleZ={aisleZ[0]} />
+      <WarehouseFloor totalW={totalW} />
 
-      {/* Allées */}
+      {/* Dock wall with quais */}
+      <DockWall
+        quais={quais}
+        quaiPositions={quaiPositions}
+        selected={selected}
+        onSelect={select}
+      />
+
+      {/* Aisles */}
       {aisles.map(aisle => {
-        const z = aisleZ[aisle.id - 1]
-        if (z === undefined) return null
+        const posX = aisleX[aisle.id - 1]
+        if (posX === undefined) return null
         const isSelected = selected?.type === 'aisle' && selected?.id === aisle.id
-        const width = aisle.zone === 'A' ? LAYOUT.GROUP_A_WIDTH : LAYOUT.GROUP_B_WIDTH
         return (
           <AisleBlock
             key={aisle.id}
             aisle={aisle}
-            position={[0, 0, z]}
-            width={width}
+            posX={posX}
             isSelected={isSelected}
             onClick={() => select('aisle', aisle.id)}
           />
         )
       })}
 
-      {/* Zone épis */}
+      {/* Épis zone */}
       <EpisZone
         episPositions={episPositions}
-        episCenterZ={episCenterZ}
+        layout={layout}
         selected={selected}
         onSelect={select}
       />

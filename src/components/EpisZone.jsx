@@ -2,45 +2,40 @@ import { useState } from 'react'
 import { Billboard, Text } from '@react-three/drei'
 import { STATUS_META, LAYOUT } from '../data/warehouse'
 
-// 14 positions épis: 7 on each side of a central lane, angled at 45°
-// Layout: rows of 7 on left side (angle +45°) and 7 on right side (angle -45°)
-const EPIS_W = 2.2   // width of one épis slot
-const EPIS_L = 1.4   // length of one épis slot
-const EPIS_H = 0.4   // height
+const SLOT_W = 2.1   // slot length (local X before rotation)
+const SLOT_D = 1.0   // slot depth  (local Z before rotation)
+const SLOT_H = LAYOUT.BLOCK_H
 
-function EpisSlot({ epis, position, rotation, isSelected, onClick }) {
+function EpisSlot({ epis, position, rotY, isSelected, onClick }) {
   const [hovered, setHovered] = useState(false)
   const meta = STATUS_META[epis.status]
-  const glow = isSelected ? 0.55 : hovered ? 0.3 : 0.08
+  const glow = isSelected ? 0.55 : hovered ? 0.28 : 0.07
 
   return (
-    <group position={position} rotation={[0, rotation, 0]}>
+    <group position={position} rotation={[0, rotY, 0]}>
       <mesh
-        position={[0, EPIS_H / 2, 0]}
+        position={[0, SLOT_H / 2, 0]}
         onPointerOver={e => { e.stopPropagation(); setHovered(true) }}
         onPointerOut={() => setHovered(false)}
         onClick={e => { e.stopPropagation(); onClick() }}
       >
-        <boxGeometry args={[EPIS_W, EPIS_H, EPIS_L]} />
-        <meshStandardMaterial
-          color={meta.color}
-          emissive={meta.color}
-          emissiveIntensity={glow}
-          roughness={0.5}
-        />
+        <boxGeometry args={[SLOT_W, SLOT_H, SLOT_D]} />
+        <meshStandardMaterial color={meta.color} emissive={meta.color} emissiveIntensity={glow} roughness={0.5} />
       </mesh>
+
       {isSelected && (
-        <mesh position={[0, EPIS_H / 2, 0]}>
-          <boxGeometry args={[EPIS_W + 0.15, EPIS_H + 0.08, EPIS_L + 0.15]} />
+        <mesh position={[0, SLOT_H / 2, 0]}>
+          <boxGeometry args={[SLOT_W + 0.15, SLOT_H + 0.08, SLOT_D + 0.15]} />
           <meshBasicMaterial color="#ffffff" wireframe />
         </mesh>
       )}
-      <Billboard position={[0, 1.4, 0]}>
-        <Text fontSize={0.38} color="#f8fafc" anchorX="center" anchorY="middle" outlineWidth={0.03} outlineColor="#000">
+
+      <Billboard position={[0, 1.8, 0]}>
+        <Text fontSize={0.32} color="#f8fafc" anchorX="center" outlineWidth={0.02} outlineColor="#000">
           {epis.name}
         </Text>
         {epis.client && (
-          <Text fontSize={0.3} color="#fde68a" anchorX="center" anchorY="middle" position={[0, -0.48, 0]} outlineWidth={0.02} outlineColor="#000">
+          <Text fontSize={0.26} color="#fde68a" anchorX="center" position={[0, -0.42, 0]}>
             {epis.client}
           </Text>
         )}
@@ -49,57 +44,63 @@ function EpisSlot({ epis, position, rotation, isSelected, onClick }) {
   )
 }
 
-export default function EpisZone({ episPositions, episCenterZ, selected, onSelect }) {
-  const { EPIS_WIDTH, EPIS_DEPTH } = LAYOUT
+export default function EpisZone({ episPositions, layout, selected, onSelect }) {
+  const { episLeftEdge, episCenterX, episRightEdge } = layout
+  const { DEPTH_B } = LAYOUT
 
-  // 7 slots each side, spaced along X, centered at x=0
-  // Left row (negative X): angled -45° (pointing inward)
-  // Right row (positive X): angled +45° (pointing inward)
-  const count = 7
-  const spacing = (EPIS_WIDTH - 2) / (count - 1) // X spacing between slots
-  const startX = -(EPIS_WIDTH - 2) / 2
-
-  const positions = []
-  for (let i = 0; i < count; i++) {
-    const x = startX + i * spacing
-    // Left side: z offset toward front
-    positions.push({ index: i, x, z: episCenterZ - 1.5, rotation: Math.PI / 4 })
-    // Right side: z offset toward back
-    positions.push({ index: i + count, x, z: episCenterZ + 1.5, rotation: -Math.PI / 4 })
-  }
+  // 7 Q7-side slots (left half), 7 Q8-side slots (right half)
+  const q7Epis = episPositions.slice(0, 7)
+  const q8Epis = episPositions.slice(7, 14)
+  const count  = 7
+  const spacing = DEPTH_B / count
 
   return (
     <group>
       {/* Zone background plate */}
-      <mesh position={[0, 0.05, episCenterZ]}>
-        <boxGeometry args={[EPIS_WIDTH + 1, 0.08, EPIS_DEPTH - 1]} />
-        <meshStandardMaterial color="#1e3a5f" opacity={0.6} transparent />
+      <mesh position={[episCenterX, 0.04, DEPTH_B / 2]}>
+        <boxGeometry args={[episRightEdge - episLeftEdge, 0.06, DEPTH_B]} />
+        <meshStandardMaterial color="#1e3a5f" opacity={0.55} transparent />
+      </mesh>
+
+      {/* Central divider lane */}
+      <mesh position={[episCenterX, 0.06, DEPTH_B / 2]}>
+        <boxGeometry args={[0.3, 0.05, DEPTH_B]} />
+        <meshStandardMaterial color="#334155" />
       </mesh>
 
       {/* Zone label */}
-      <Billboard position={[0, 3.5, episCenterZ]}>
-        <Text fontSize={0.7} color="#93c5fd" anchorX="center" anchorY="middle" outlineWidth={0.05} outlineColor="#000">
+      <Billboard position={[episCenterX, 4.5, DEPTH_B / 2]}>
+        <Text fontSize={0.72} color="#93c5fd" anchorX="center" outlineWidth={0.05} outlineColor="#000">
           Zone Épis
         </Text>
       </Billboard>
 
-      {/* Central driving lane marker */}
-      <mesh position={[0, 0.06, episCenterZ]}>
-        <boxGeometry args={[EPIS_WIDTH + 0.5, 0.02, 1.2]} />
-        <meshStandardMaterial color="#334155" />
-      </mesh>
-
-      {/* Epis slots */}
-      {positions.map(({ index, x, z, rotation }) => {
-        const epis = episPositions[index]
-        if (!epis) return null
+      {/* Q7 side (left, angled toward A15) */}
+      {q7Epis.map((epis, i) => {
+        const z = spacing * (i + 0.5)
+        const x = episLeftEdge + 1.5
         const isSelected = selected?.type === 'epis' && selected?.id === epis.id
         return (
           <EpisSlot
-            key={epis.id}
-            epis={epis}
+            key={epis.id} epis={epis}
             position={[x, 0, z]}
-            rotation={rotation}
+            rotY={-Math.PI / 4}
+            isSelected={isSelected}
+            onClick={() => onSelect('epis', epis.id)}
+          />
+        )
+      })}
+
+      {/* Q8 side (right, angled toward A16) */}
+      {q8Epis.map((epis, i) => {
+        const z = spacing * (i + 0.5)
+        const x = episCenterX + 1.5
+        const isSelected = selected?.type === 'epis' && selected?.id === epis.id
+        return (
+          <EpisSlot
+            key={epis.id} epis={epis}
+            position={[x, 0, z]}
+            rotY={Math.PI / 4}
             isSelected={isSelected}
             onClick={() => onSelect('epis', epis.id)}
           />

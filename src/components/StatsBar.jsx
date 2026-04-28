@@ -1,20 +1,27 @@
 import { useWarehouseStore } from '../store/warehouseStore'
-import { STATUS, STATUS_META } from '../data/warehouse'
+import { STATUS, STATUS_META, QUAI_STATUS_META, QUAI_STATUS } from '../data/warehouse'
 
 export default function StatsBar() {
   const getStats = useWarehouseStore(s => s.getStats)
-  const stats = getStats()
+  const quais    = useWarehouseStore(s => s.quais)
+  const stats    = getStats()
+
+  const loading  = quais.filter(q => q.status === QUAI_STATUS.LOADING).length
+  const waiting  = quais.filter(q => q.status === QUAI_STATUS.WAITING).length
 
   return (
     <div className="stats-bar">
       <div className="stats-brand">Plan de Quai 3D</div>
+      <div className="stats-divider" />
       <div className="stats-items">
-        <StatItem label="Capacité" value={`${stats.usedPalettes} / ${stats.totalCapacity}`} sub="palettes" />
-        <StatItem label="Occupation" value={`${stats.occupancyPct}%`} sub="utilisé" accent={occupancyColor(stats.occupancyPct)} />
-        <StatItem label="Libres" value={stats.byStatus[STATUS.FREE]} sub="allées" />
+        <StatItem label="Palettes" value={`${stats.usedPalettes}/${stats.totalCapacity}`} sub="utilisées" />
+        <StatItem label="Occupation" value={`${stats.occupancyPct}%`} sub="entrepôt" accent={pctColor(stats.occupancyPct)} />
+        <StatItem label="Allées libres" value={stats.byStatus[STATUS.FREE]} sub="/ 21" />
+        <StatItem label="Quais actifs" value={stats.quaiActive} sub="/ 6" accent={stats.quaiActive > 0 ? QUAI_STATUS_META[QUAI_STATUS.LOADING].color : undefined} />
+        <StatItem label="En chargement" value={loading} sub="quais" accent={loading > 0 ? QUAI_STATUS_META[QUAI_STATUS.LOADING].color : undefined} />
+        <StatItem label="En attente" value={waiting} sub="quais" accent={waiting > 0 ? QUAI_STATUS_META[QUAI_STATUS.WAITING].color : undefined} />
         <StatItem label="Affectées" value={stats.byStatus[STATUS.ASSIGNED]} sub="allées" accent={STATUS_META[STATUS.ASSIGNED].color} />
         <StatItem label="En cours" value={stats.byStatus[STATUS.IN_PROGRESS]} sub="allées" accent={STATUS_META[STATUS.IN_PROGRESS].color} />
-        <StatItem label="Complet" value={stats.byStatus[STATUS.FULL]} sub="allées" accent={STATUS_META[STATUS.FULL].color} />
       </div>
     </div>
   )
@@ -30,7 +37,7 @@ function StatItem({ label, value, sub, accent }) {
   )
 }
 
-function occupancyColor(pct) {
+function pctColor(pct) {
   if (pct < 50) return '#22c55e'
   if (pct < 80) return '#f59e0b'
   return '#ef4444'

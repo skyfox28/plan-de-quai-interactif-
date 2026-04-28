@@ -310,6 +310,68 @@ body {
   color: var(--text);
 }
 
+/* ── Quai panel extras ──────────────────────────── */
+.panel-badge-quai {
+  background: #1e3a5f;
+  color: #60a5fa;
+}
+
+.quai-zones {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quai-zones-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quai-zones-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.quai-zone-chip {
+  font-size: 11px;
+  font-weight: 600;
+  background: #1e293b;
+  color: #93c5fd;
+  border: 1px solid #1e3a5f;
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+
+.quai-zone-epis {
+  color: #c4b5fd;
+  border-color: #4c1d95;
+  background: #1e1b2e;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.form-row label {
+  flex: 1;
+}
+
+.quai-propagation-note {
+  margin: 0 16px 16px;
+  font-size: 11px;
+  color: #475569;
+  padding: 8px 10px;
+  background: #0f1a2a;
+  border-radius: 6px;
+  border-left: 3px solid #1e3a5f;
+}
+
 /* ── Canvas hint ────────────────────────────────── */
 .canvas-hint {
   position: absolute;

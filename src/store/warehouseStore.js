@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { createAisles, createEpisPositions, createQuais, STATUS, QUAI_STATUS, QUAI_DEFS } from '../data/warehouse'
+import { createAisles, createEpisPositions, createQuais, STATUS, QUAI_STATUS } from '../data/warehouse'
 
 const EMPTY_AISLE = {
   status: STATUS.FREE, client: null, command: null,
@@ -25,7 +25,6 @@ export const useWarehouseStore = create((set, get) => ({
     return quais.find(q => q.id === selected.id)
   },
 
-  // Generic update for aisle / epis
   updateItem: (type, id, updates) => {
     if (type === 'aisle') {
       set(s => ({ aisles: s.aisles.map(a => a.id === id ? { ...a, ...updates } : a) }))
@@ -42,50 +41,20 @@ export const useWarehouseStore = create((set, get) => ({
     }
   },
 
-  // Assign truck to a quai and propagate to its aisles + épis
+  // Update quai only — aisles are assigned manually and independently
   assignQuai: (quaiId, data) => {
-    const def = QUAI_DEFS.find(q => q.id === quaiId)
-    const hasTruck = !!data.truck?.trim()
-
-    const aisleStatus = !hasTruck
-      ? STATUS.FREE
-      : data.status === QUAI_STATUS.LOADING  ? STATUS.IN_PROGRESS
-      : data.status === QUAI_STATUS.DONE     ? STATUS.FULL
-      : STATUS.ASSIGNED
-
     set(s => ({
       quais: s.quais.map(q => q.id === quaiId ? { ...q, ...data } : q),
-
-      aisles: s.aisles.map(a => {
-        if (!def?.aisleIds.includes(a.id)) return a
-        return hasTruck
-          ? { ...a, quaiId, client: data.truck, status: aisleStatus }
-          : { ...a, quaiId: null, client: null, status: STATUS.FREE, usedPalettes: 0 }
-      }),
-
-      episPositions: s.episPositions.map(e => {
-        if (!def?.episIds?.includes(e.id)) return e
-        return hasTruck
-          ? { ...e, quaiId, client: data.truck, status: aisleStatus }
-          : { ...e, quaiId: null, client: null, status: STATUS.FREE, usedPalettes: 0 }
-      }),
     }))
   },
 
-  // Clear quai and all its aisles/épis
+  // Clear quai only — aisles remain untouched
   clearQuai: (quaiId) => {
-    const def = QUAI_DEFS.find(q => q.id === quaiId)
     set(s => ({
       quais: s.quais.map(q => q.id === quaiId ? {
         ...q, truck: '', status: QUAI_STATUS.EMPTY,
         arrivalTime: '', departureTime: '', notes: '',
       } : q),
-      aisles: s.aisles.map(a =>
-        def?.aisleIds.includes(a.id) ? { ...a, ...EMPTY_AISLE } : a
-      ),
-      episPositions: s.episPositions.map(e =>
-        def?.episIds?.includes(e.id) ? { ...e, ...EMPTY_AISLE } : e
-      ),
     }))
   },
 

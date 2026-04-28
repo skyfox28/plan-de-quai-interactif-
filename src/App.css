@@ -546,16 +546,15 @@ body {
 
 .pgrid-cells {
   display: grid;
-  grid-template-columns: repeat(var(--cols, 9), 1fr);
   gap: 2px;
   flex: 1;
 }
 
 .pgrid-cell {
-  height: 16px;
+  height: 18px;
   border-radius: 2px;
-  background: rgba(15, 30, 50, 0.8);
-  border: 1px solid rgba(30, 58, 95, 0.35);
+  background: rgba(14, 28, 50, 0.95);
+  border: 1px solid rgba(30, 80, 140, 0.5);
   transition: background 0.25s, box-shadow 0.25s;
 }
 

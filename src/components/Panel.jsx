@@ -24,7 +24,7 @@ function PaletteGridViz({ usedPalettes, totalPalettes, groundPositions, color })
     rows.push(
       <div key={lvl} className="pgrid-row">
         <span className="pgrid-lvl">{lvl === 0 ? 'Sol' : 'Gerber'}</span>
-        <div className="pgrid-cells" style={{ '--cols': groundPositions }}>{cells}</div>
+        <div className="pgrid-cells" style={{ gridTemplateColumns: `repeat(${groundPositions}, 1fr)` }}>{cells}</div>
       </div>
     )
   }
@@ -254,7 +254,7 @@ function QuaiPanel({ item, selected, assignQuai, clearQuai, deselect }) {
       </form>
 
       <div className="quai-propagation-note">
-        ℹ️ L'affectation se propage automatiquement aux allées desservies.
+        ℹ️ Les allées s'assignent manuellement en cliquant dessus.
       </div>
     </>
   )

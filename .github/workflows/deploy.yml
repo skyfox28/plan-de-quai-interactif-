@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'claude/3d-dock-planning-vEAbK'
+      - 'claude/reorganize-conveyor-layout-Vevbk'
       - main
   workflow_dispatch:
 

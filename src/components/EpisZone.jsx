@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { Billboard, Text } from '@react-three/drei'
 import { STATUS_META, LAYOUT } from '../data/warehouse'
 
-const SLOT_W = 2.1   // slot length (local X before rotation)
-const SLOT_D = 1.0   // slot depth  (local Z before rotation)
+const SLOT_W = 2.1
+const SLOT_D = 1.0
 const SLOT_H = LAYOUT.BLOCK_H
 
 function EpisSlot({ epis, position, rotY, isSelected, onClick }) {
@@ -48,10 +48,11 @@ export default function EpisZone({ episPositions, layout, selected, onSelect }) 
   const { episLeftEdge, episCenterX, episRightEdge } = layout
   const { DEPTH_B } = LAYOUT
 
-  // 7 Q7-side slots (left half), 7 Q8-side slots (right half)
+  // E1-E7 belong to Q7 (RIGHT of epis zone after mirror)
+  // E8-E14 belong to Q8 (LEFT  of epis zone after mirror)
   const q7Epis = episPositions.slice(0, 7)
   const q8Epis = episPositions.slice(7, 14)
-  const count  = 7
+  const count   = 7
   const spacing = DEPTH_B / count
 
   return (
@@ -75,8 +76,24 @@ export default function EpisZone({ episPositions, layout, selected, onSelect }) 
         </Text>
       </Billboard>
 
-      {/* Q7 side (left, angled toward A15) */}
+      {/* Q7 side — RIGHT of epis zone (toward aisles A14-A15), angled right */}
       {q7Epis.map((epis, i) => {
+        const z = spacing * (i + 0.5)
+        const x = episRightEdge - 1.5
+        const isSelected = selected?.type === 'epis' && selected?.id === epis.id
+        return (
+          <EpisSlot
+            key={epis.id} epis={epis}
+            position={[x, 0, z]}
+            rotY={Math.PI / 4}
+            isSelected={isSelected}
+            onClick={() => onSelect('epis', epis.id)}
+          />
+        )
+      })}
+
+      {/* Q8 side — LEFT of epis zone (toward aisle A16), angled left */}
+      {q8Epis.map((epis, i) => {
         const z = spacing * (i + 0.5)
         const x = episLeftEdge + 1.5
         const isSelected = selected?.type === 'epis' && selected?.id === epis.id
@@ -85,22 +102,6 @@ export default function EpisZone({ episPositions, layout, selected, onSelect }) 
             key={epis.id} epis={epis}
             position={[x, 0, z]}
             rotY={-Math.PI / 4}
-            isSelected={isSelected}
-            onClick={() => onSelect('epis', epis.id)}
-          />
-        )
-      })}
-
-      {/* Q8 side (right, angled toward A16) */}
-      {q8Epis.map((epis, i) => {
-        const z = spacing * (i + 0.5)
-        const x = episCenterX + 1.5
-        const isSelected = selected?.type === 'epis' && selected?.id === epis.id
-        return (
-          <EpisSlot
-            key={epis.id} epis={epis}
-            position={[x, 0, z]}
-            rotY={Math.PI / 4}
             isSelected={isSelected}
             onClick={() => onSelect('epis', epis.id)}
           />

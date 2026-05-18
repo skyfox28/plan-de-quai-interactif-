@@ -94,18 +94,22 @@ function QuaiBay({ quai, posX, width, isSelected, onClick }) {
 }
 
 export default function DockWall({ quais, quaiPositions, selected, onSelect }) {
-  const totalW = 60.5
+  // Compute apron bounds from all quai positions (includes Q2 on far right)
+  const allXMin = Math.min(...Object.values(quaiPositions).map(p => p.xMin))
+  const allXMax = Math.max(...Object.values(quaiPositions).map(p => p.xMax))
+  const apronW  = allXMax - allXMin + 4
+  const apronCX = (allXMin + allXMax) / 2
 
   return (
     <group>
-      {/* Dock apron */}
-      <mesh position={[0, 0.02, DOCK_Z_CENTER]}>
-        <boxGeometry args={[totalW + 4, 0.04, DOCK_DEPTH + 2]} />
+      {/* Dock apron — extends to cover all quais including Q2 */}
+      <mesh position={[apronCX, 0.02, DOCK_Z_CENTER]}>
+        <boxGeometry args={[apronW, 0.04, DOCK_DEPTH + 2]} />
         <meshStandardMaterial color="#070e1c" roughness={0.6} metalness={0.2} />
       </mesh>
 
-      {/* "QUAI" label */}
-      <Billboard position={[-(totalW / 2) - 2.5, 1.5, DOCK_Z_CENTER]}>
+      {/* "QUAI" label — leftmost side (Q9) */}
+      <Billboard position={[allXMin - 2.5, 1.5, DOCK_Z_CENTER]}>
         <Text fontSize={0.7} color="#1e3a5f" anchorX="center">QUAI</Text>
       </Billboard>
 
